@@ -24,11 +24,11 @@ const WEATHER_FIELDS: Array<{
   hint: string;
   step: string;
 }> = [
-  { key: "temperature_c", label: "temperature_c", hint: "Surface air temperature, °C", step: "0.1" },
-  { key: "humidity_pct", label: "humidity_pct", hint: "Relative humidity, % (0–100)", step: "0.1" },
-  { key: "pressure_hpa", label: "pressure_hpa", hint: "Mean sea-level pressure, hPa", step: "0.1" },
-  { key: "wind_speed_ms", label: "wind_speed_ms", hint: "Wind speed, m/s (≥ 0)", step: "0.1" },
-  { key: "cloud_cover_pct", label: "cloud_cover_pct", hint: "Total cloud cover, % (0–100)", step: "0.1" },
+  { key: "temperature_c", label: "Temperature (°C)", hint: "Surface air temperature", step: "0.1" },
+  { key: "humidity_pct", label: "Relative Humidity (%)", hint: "Range 0–100", step: "0.1" },
+  { key: "pressure_hpa", label: "Atmospheric Pressure (hPa)", hint: "Mean sea-level pressure", step: "0.1" },
+  { key: "wind_speed_ms", label: "Wind Speed (m/s)", hint: "Non-negative speed", step: "0.1" },
+  { key: "cloud_cover_pct", label: "Cloud Cover (%)", hint: "Range 0–100", step: "0.1" },
 ];
 
 export function AnalysisPage() {
@@ -106,29 +106,32 @@ export function AnalysisPage() {
             selection={selection}
           />
           <p className="mb-3 text-xs text-stone-500">Click the map to set location, or choose a named point.</p>
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {PLACE_PRESETS.map((place) => (
-              <button
-                className="rounded-sm border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50"
-                key={place.name}
-                onClick={() =>
-                  patchDraft({
-                    region_name: place.name,
-                    latitude: String(place.latitude),
-                    longitude: String(place.longitude),
-                  })
-                }
-                type="button"
-              >
-                {place.name}
-              </button>
-            ))}
+          <div className="mb-4 flex flex-wrap items-center gap-2 border-t border-stone-200 pt-3">
+            <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Presets:</span>
+            <div className="flex flex-wrap gap-1">
+              {PLACE_PRESETS.map((place) => (
+                <button
+                  className="rounded-sm border border-stone-300 bg-white px-2 py-0.5 font-mono text-[10px] text-stone-700 hover:border-stone-500 hover:text-stone-900 transition-colors"
+                  key={place.name}
+                  onClick={() =>
+                    patchDraft({
+                      region_name: place.name,
+                      latitude: String(place.latitude),
+                      longitude: String(place.longitude),
+                    })
+                  }
+                  type="button"
+                >
+                  {place.name}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
               error={errorMap.latitude}
               hint="GeoPoint.latitude, −90 to 90"
-              label="latitude"
+              label="Latitude"
               name="latitude"
               onChange={(e) => patchDraft({ latitude: e.target.value })}
               required
@@ -137,7 +140,7 @@ export function AnalysisPage() {
             <Input
               error={errorMap.longitude}
               hint="GeoPoint.longitude, −180 to 180"
-              label="longitude"
+              label="Longitude"
               name="longitude"
               onChange={(e) => patchDraft({ longitude: e.target.value })}
               required
@@ -145,7 +148,7 @@ export function AnalysisPage() {
             />
             <Input
               hint="Optional. Example: Kerala"
-              label="region_name"
+              label="Region Name"
               name="region_name"
               onChange={(e) => patchDraft({ region_name: e.target.value })}
               value={draft.region_name}
@@ -153,15 +156,15 @@ export function AnalysisPage() {
             <Input
               error={errorMap.horizon_hours}
               hint="Integer 1–72. Default 12"
-              label="horizon_hours"
+              label="Horizon Hours"
               name="horizon_hours"
               onChange={(e) => patchDraft({ horizon_hours: e.target.value })}
               value={draft.horizon_hours}
             />
           </div>
-          <p className="mt-4 mb-2 text-xs font-medium uppercase tracking-wide text-stone-500">
-            weather (all optional)
-          </p>
+          <h3 className="mt-5 mb-2.5 text-[10.5px] font-bold tracking-[0.12em] uppercase text-stone-500">
+            Meteorological parameters
+          </h3>
           <div className="grid gap-3 sm:grid-cols-2">
             {WEATHER_FIELDS.map((field) => (
               <Input

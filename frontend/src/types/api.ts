@@ -70,11 +70,45 @@ export interface ImageExplanation {
   description: string;
 }
 
+export interface HistoricalMatch {
+  event: string;
+  region: string;
+  date: string;
+  observed_category: number;
+  observed_rainfall_mm: number;
+  similarity: number;
+  similarity_pct: number;
+}
+
+export interface HistoricalExplanation {
+  reference_events: number;
+  closest_match?: HistoricalMatch | null;
+  matches?: HistoricalMatch[];
+  notes?: string[];
+}
+
+export interface ConfidenceFactors {
+  model_agreement?: number | null;
+  historical_similarity?: number | null;
+  data_quality: string;
+  data_quality_score: number;
+}
+
+export interface ConfidenceExplanation {
+  confidence_pct: number;
+  confidence: string;
+  factors: ConfidenceFactors;
+  components?: Record<string, any>;
+}
+
 export interface Explanation {
   feature_attributions?: FeatureAttribution[];
   image_explanation?: ImageExplanation | null;
   /** Human-readable sentence explaining the main drivers of the prediction */
   narrative?: string;
+  historical_explanation?: HistoricalExplanation | null;
+  confidence_explanation?: ConfidenceExplanation | null;
+  caveats?: string[];
 }
 
 export interface PredictionResponse {

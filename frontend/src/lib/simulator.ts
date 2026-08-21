@@ -89,6 +89,53 @@ export function simulatePrediction(request: PredictionRequest): PredictionRespon
               "Synthetic Grad-CAM stand-in. POST /api/v1/predictions does not accept satellite imagery; no real overlay is available until the vision model is deployed.",
           },
           narrative: `Simulated ${horizon}-hour assessment for ${place}: probability of a high-impact rain event is ${(probability * 100).toFixed(1)}% (${risk_level}). The largest simulated driver ${direction} risk via ${top?.feature ?? "weather inputs"}. This is not a model output.`,
+          historical_explanation: {
+            reference_events: 142,
+            closest_match: {
+              event: `${place} 2018-08-15 (Heavy, 119 mm)`,
+              region: place,
+              date: "2018-08-15",
+              observed_category: 2,
+              observed_rainfall_mm: 119.0,
+              similarity: 0.84,
+              similarity_pct: 84.0,
+            },
+            matches: [
+              {
+                event: `${place} 2018-08-15 (Heavy, 119 mm)`,
+                region: place,
+                date: "2018-08-15",
+                observed_category: 2,
+                observed_rainfall_mm: 119.0,
+                similarity: 0.84,
+                similarity_pct: 84.0,
+              },
+              {
+                event: `${place} 2019-07-25 (Moderate, 45 mm)`,
+                region: place,
+                date: "2019-07-25",
+                observed_category: 1,
+                observed_rainfall_mm: 45.0,
+                similarity: 0.72,
+                similarity_pct: 72.0,
+              },
+            ],
+            notes: ["Simulated historical matching."],
+          },
+          confidence_explanation: {
+            confidence_pct: Math.round(confidence * 1000) / 10,
+            confidence: confidence >= 0.8 ? "High" : confidence >= 0.5 ? "Medium" : "Low",
+            factors: {
+              model_agreement: 0.85,
+              historical_similarity: 0.84,
+              data_quality: "Good",
+              data_quality_score: 0.95,
+            },
+            components: {},
+          },
+          caveats: [
+            "This is a simulated prediction run using the local frontend simulator fallback.",
+          ],
         },
   };
 }

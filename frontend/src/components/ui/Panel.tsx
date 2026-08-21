@@ -17,10 +17,10 @@ export function Panel({
   return (
     <section className={cn("border border-stone-300 bg-paper", className)}>
       {(title || actions) && (
-        <header className="flex items-start justify-between gap-3 border-b border-stone-200 px-4 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-stone-200 px-4 py-2.5">
           <div>
-            {title && <h2 className="text-sm font-semibold tracking-wide text-stone-900">{title}</h2>}
-            {description && <p className="mt-0.5 text-xs leading-5 text-stone-600">{description}</p>}
+            {title && <h2 className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-stone-600">{title}</h2>}
+            {description && <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">{description}</p>}
           </div>
           {actions}
         </header>

@@ -32,26 +32,27 @@ export function HistoryPage() {
         description="No history API exists. Sessions are stored in this browser only (localStorage) after a prediction is run."
         title="Local analysis sessions"
       >
-        <div className="mb-3 flex flex-wrap gap-3">
-          <label className="text-xs">
-            <span className="mb-1 block text-stone-600">risk_level</span>
+        <div className="mb-4 flex flex-wrap items-center gap-4 border-b border-stone-200 pb-3">
+          <label className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-semibold text-stone-600">
+            <span>Risk Level</span>
             <select
-              className="rounded-sm border border-stone-300 px-2 py-1.5 text-sm"
+              className="rounded-sm border border-stone-300 bg-white px-2 py-1 text-xs text-stone-850 outline-none focus:border-stone-700"
               onChange={(e) => setRisk(e.target.value as RiskLevel | "all")}
               value={risk}
             >
               <option value="all">All</option>
-              <option value="low">low</option>
-              <option value="moderate">moderate</option>
-              <option value="heavy">heavy</option>
-              <option value="extreme">extreme</option>
+              <option value="low">Low</option>
+              <option value="moderate">Moderate</option>
+              <option value="heavy">Heavy</option>
+              <option value="extreme">Extreme</option>
             </select>
           </label>
-          <label className="text-xs">
-            <span className="mb-1 block text-stone-600">region_name</span>
+          <label className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-semibold text-stone-600">
+            <span>Region Name</span>
             <input
-              className="rounded-sm border border-stone-300 px-2 py-1.5 font-mono text-sm"
+              className="rounded-sm border border-stone-300 px-2.5 py-1 font-mono text-xs text-stone-850 outline-none placeholder:text-stone-400 focus:border-stone-700"
               onChange={(e) => setRegion(e.target.value)}
+              placeholder="Search region..."
               value={region}
             />
           </label>
@@ -65,33 +66,33 @@ export function HistoryPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[40rem] text-left text-sm">
-              <thead className="border-b border-stone-300 text-xs uppercase tracking-wide text-stone-600">
+              <thead className="border-b border-stone-300 text-[10.5px] uppercase tracking-wider text-stone-500 bg-stone-50/50">
                 <tr>
-                  <th className="py-2 pr-3">stored_at</th>
-                  <th className="py-2 pr-3">region_name</th>
-                  <th className="py-2 pr-3">risk_level</th>
-                  <th className="py-2 pr-3">probability</th>
-                  <th className="py-2 pr-3">source</th>
-                  <th className="py-2"> </th>
+                  <th className="px-4 py-2.5 font-bold">stored_at</th>
+                  <th className="px-4 py-2.5 font-bold">region</th>
+                  <th className="px-4 py-2.5 font-bold">risk_level</th>
+                  <th className="px-4 py-2.5 font-bold">probability</th>
+                  <th className="px-4 py-2.5 font-bold">source</th>
+                  <th className="px-4 py-2.5 font-bold"> </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-stone-250">
                 {filtered.map((item) => (
-                  <tr className="border-b border-stone-200" key={item.id}>
-                    <td className="py-2 pr-3 font-mono text-xs">{formatDateTime(item.stored_at)}</td>
-                    <td className="py-2 pr-3">{item.response.region_name ?? "—"}</td>
-                    <td className="py-2 pr-3">
+                  <tr className="hover:bg-stone-50 transition-colors" key={item.id}>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-stone-600">{formatDateTime(item.stored_at)}</td>
+                    <td className="px-4 py-2.5 font-medium text-stone-900">{item.response.region_name ?? "—"}</td>
+                    <td className="px-4 py-2.5">
                       <RiskChip level={item.response.risk_level} />
                     </td>
-                    <td className="py-2 pr-3 font-mono tabular-nums">{formatProbability(item.response.probability)}</td>
-                    <td className="py-2 pr-3">
+                    <td className="px-4 py-2.5 font-mono text-xs tabular-nums text-stone-900">{formatProbability(item.response.probability)}</td>
+                    <td className="px-4 py-2.5">
                       {item.simulated ? (
-                        <span className="font-mono text-[10px] font-semibold uppercase text-amber-950">Simulated</span>
+                        <span className="font-mono text-[10px] font-semibold uppercase text-amber-800">Simulated</span>
                       ) : (
                         <span className="font-mono text-[10px] uppercase text-stone-500">API</span>
                       )}
                     </td>
-                    <td className="py-2">
+                    <td className="px-4 py-2">
                       <Button
                         onClick={() => {
                           setActiveAnalysis({

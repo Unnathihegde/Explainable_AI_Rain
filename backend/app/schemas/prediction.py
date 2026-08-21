@@ -7,6 +7,7 @@ receives — model implementations (Phases 3–6) must conform to them.
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -63,6 +64,37 @@ class ImageExplanation(BaseModel):
     description: str = Field(..., description="Plain-language summary of highlighted regions")
 
 
+class HistoricalMatch(BaseModel):
+    event: str
+    region: str
+    date: str
+    observed_category: int
+    observed_rainfall_mm: float
+    similarity: float
+    similarity_pct: float
+
+
+class HistoricalExplanation(BaseModel):
+    reference_events: int
+    closest_match: HistoricalMatch | None = None
+    matches: list[HistoricalMatch] = []
+    notes: list[str] = []
+
+
+class ConfidenceFactors(BaseModel):
+    model_agreement: float | None = None
+    historical_similarity: float | None = None
+    data_quality: str
+    data_quality_score: float
+
+
+class ConfidenceExplanation(BaseModel):
+    confidence_pct: float
+    confidence: str
+    factors: ConfidenceFactors
+    components: dict[str, Any] = {}
+
+
 class Explanation(BaseModel):
     feature_attributions: list[FeatureAttribution] = []
     image_explanation: ImageExplanation | None = None
@@ -70,6 +102,9 @@ class Explanation(BaseModel):
         "",
         description="Human-readable sentence explaining the main drivers of the prediction",
     )
+    historical_explanation: HistoricalExplanation | None = None
+    confidence_explanation: ConfidenceExplanation | None = None
+    caveats: list[str] = []
 
 
 class PredictionResponse(BaseModel):
@@ -82,3 +117,50 @@ class PredictionResponse(BaseModel):
     confidence: float = Field(..., ge=0, le=1, description="Model confidence score")
     model_version: str
     explanation: Explanation | None = None
+
+
+# ---------------------------------------------------------------------------
+# Grad-CAM image explanation schema (separate endpoint)
+# ---------------------------------------------------------------------------
+
+class GradCamRegion(BaseModel):
+    """One named high-attention region extracted from the Grad-CAM heatmap."""
+    name: str
+    bbox: list[float] = Field(
+        ..., description="Normalised bounding box [x0, y0, x1, y1] in scene coordinates"
+    )
+    area_share: float = Field(..., description="Share of the whole scene this region covers")
+    intensity: float = Field(..., description="Mean normalised attribution inside the region")
+    position: str = Field(..., description="Plain-language position within the scene")
+
+
+class GradCamResponse(BaseModel):
+    """
+    Real Grad-CAM explanation from the trained satellite CNN (satellite_model_v1.pt).
+
+    The heatmap is returned as a base64-encoded PNG data URL so the browser
+    can display it without a static file server.  Nothing here is synthesised:
+    if the satellite model cannot process the supplied image, the endpoint
+    raises 422.
+    """
+    source: str = Field(
+        "real",
+        description="Always 'real' — distinguishes from simulator Grad-CAM"
+    )
+    model_name: str
+    model_version: str
+    target_layer: str = Field(
+        ..., description="Convolutional layer used for attribution (e.g. 'features.3')"
+    )
+    predicted_category: int
+    class_probabilities: dict[str, float]
+    satellite_risk_score: float
+    high_influence_coverage: float
+    coverage_label: str
+    regions: list[GradCamRegion]
+    #: Normalised heatmap encoded as a PNG data URL (data:image/png;base64,…)
+    heatmap_data_url: str
+    #: Side-by-side overlay (original scene + heatmap) as a PNG data URL
+    overlay_data_url: str
+    notes: list[str] = []
+

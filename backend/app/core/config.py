@@ -30,9 +30,13 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "varuna"
     POSTGRES_DB: str = "varuna_ai"
 
-    # --- Model artifacts (populated in later phases) ---
+    # --- Model artifacts ---
     # Directory where trained model weights/artifacts are stored and loaded from.
-    MODEL_ARTIFACT_DIR: str = "../ai_models/artifacts"
+    # The ai_models package resolves its own paths relative to the repo root via
+    # Path(__file__).parents[N]; this setting is informational and used in
+    # the /predictions/model-info response.
+    MODEL_ARTIFACT_DIR: str = "../ai_models/saved_models"
+
 
     # --- External data source credentials (Phase 2) ---
     # MOSDAC and NASA Earthdata require registered accounts; keys live in .env only.

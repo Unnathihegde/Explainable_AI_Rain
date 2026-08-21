@@ -47,8 +47,8 @@ describe("Analysis workflow", () => {
   it("blocks submit when latitude is invalid", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AnalysisPage />, { route: "/analysis" });
-    await user.clear(screen.getByLabelText("latitude"));
-    await user.type(screen.getByLabelText("latitude"), "999");
+    await user.clear(screen.getByLabelText(/latitude/i));
+    await user.type(screen.getByLabelText(/latitude/i), "999");
     await user.click(screen.getByTestId("run-prediction"));
     expect(await screen.findByText(/Latitude must be between/)).toBeInTheDocument();
     expect(createPrediction).not.toHaveBeenCalled();

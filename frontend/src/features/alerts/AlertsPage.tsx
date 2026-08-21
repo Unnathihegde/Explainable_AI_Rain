@@ -56,34 +56,36 @@ export function AlertsPage() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-3 border border-stone-300 bg-paper px-4 py-3">
-        <label className="text-xs">
-          <span className="mb-1 block text-stone-600">Severity</span>
-          <select
-            className="rounded-sm border border-stone-300 bg-white px-2 py-1.5 text-sm"
-            onChange={(e) => setSeverity(e.target.value as RiskLevel | "all")}
-            value={severity}
-          >
-            <option value="all">All</option>
-            {(Object.keys(RISK_LABELS) as RiskLevel[]).map((level) => (
-              <option key={level} value={level}>
-                {RISK_LABELS[level]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs">
-          <span className="mb-1 block text-stone-600">Region</span>
-          <input
-            className="rounded-sm border border-stone-300 px-2 py-1.5 font-mono text-sm"
-            onChange={(e) => setRegionQuery(e.target.value)}
-            placeholder="Filter region_name"
-            value={regionQuery}
-          />
-        </label>
-        <p className="ml-auto text-xs text-stone-500">
-          Server has no filter query parameters; filtering is client-side.
-        </p>
+      <div className="flex flex-wrap items-center gap-6 border border-stone-300 bg-paper px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-semibold text-stone-600">
+            <span>Severity</span>
+            <select
+              className="rounded-sm border border-stone-300 bg-white px-2 py-1 text-xs text-stone-850 outline-none focus:border-stone-700"
+              onChange={(e) => setSeverity(e.target.value as RiskLevel | "all")}
+              value={severity}
+            >
+              <option value="all">All</option>
+              {(Object.keys(RISK_LABELS) as RiskLevel[]).map((level) => (
+                <option key={level} value={level}>
+                  {RISK_LABELS[level]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-semibold text-stone-600">
+            <span>Region</span>
+            <input
+              className="rounded-sm border border-stone-300 px-2.5 py-1 font-mono text-xs text-stone-850 outline-none placeholder:text-stone-400 focus:border-stone-700"
+              onChange={(e) => setRegionQuery(e.target.value)}
+              placeholder="Search region..."
+              value={regionQuery}
+            />
+          </label>
+        </div>
+        <span className="ml-auto font-mono text-[9.5px] uppercase tracking-wider text-stone-400 hidden sm:inline">
+          Local evaluation context
+        </span>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -104,7 +106,7 @@ export function AlertsPage() {
           {filtered.length > 0 && (
             <div className="overflow-x-auto border border-stone-300 bg-paper">
               <table className="w-full min-w-[40rem] text-left text-sm">
-                <thead className="border-b border-stone-300 bg-stone-50 text-xs uppercase tracking-wide text-stone-600">
+                <thead className="border-b border-stone-300 bg-stone-50 text-[10.5px] uppercase tracking-wider text-stone-500">
                   <tr>
                     {([
                       ["region_name", "region_name"],
@@ -112,30 +114,30 @@ export function AlertsPage() {
                       ["probability", "probability"],
                       ["issued_at", "issued_at"],
                     ] as const).map(([key, label]) => (
-                      <th className="px-3 py-2 font-medium" key={key}>
-                        <button className="hover:text-stone-900" onClick={() => toggleSort(key)} type="button">
+                      <th className="px-4 py-2.5 font-bold" key={key}>
+                        <button className="hover:text-stone-900 transition-colors" onClick={() => toggleSort(key)} type="button">
                           {label}
                           {sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
                         </button>
                       </th>
                     ))}
-                    <th className="px-3 py-2 font-medium">is_active</th>
+                    <th className="px-4 py-2.5 font-bold">is_active</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-stone-250">
                   {filtered.map((alert) => (
                     <tr
-                      className={`cursor-pointer border-b border-stone-200 ${selectedAlertId === alert.id ? "bg-stone-100" : "hover:bg-stone-50"}`}
+                      className={`cursor-pointer transition-colors ${selectedAlertId === alert.id ? "bg-stone-200/60" : "hover:bg-stone-50"}`}
                       key={alert.id}
                       onClick={() => setSelectedAlertId(alert.id)}
                     >
-                      <td className="px-3 py-2">{alert.region_name}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-2 font-medium text-stone-900">{alert.region_name}</td>
+                      <td className="px-4 py-2">
                         <RiskChip level={alert.risk_level} />
                       </td>
-                      <td className="px-3 py-2 font-mono tabular-nums">{formatProbability(alert.probability)}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{formatDateTime(alert.issued_at)}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{String(alert.is_active)}</td>
+                      <td className="px-4 py-2 font-mono text-xs tabular-nums text-stone-900">{formatProbability(alert.probability)}</td>
+                      <td className="px-4 py-2 font-mono text-[11px] text-stone-600">{formatDateTime(alert.issued_at)}</td>
+                      <td className="px-4 py-2 font-mono text-xs text-stone-600">{String(alert.is_active)}</td>
                     </tr>
                   ))}
                 </tbody>

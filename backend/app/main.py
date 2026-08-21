@@ -7,6 +7,15 @@ Run locally with:  uvicorn app.main:app --reload
 
 from contextlib import asynccontextmanager
 
+# ── Cross-platform pickle compatibility ──────────────────────────────────────
+# The model artifacts were serialised on Linux; loading them on Windows with a
+# plain joblib.load() raises UnsupportedOperation from pathlib.PosixPath.__new__.
+# The shim MUST be applied before any import of ai_models or the prediction
+# service triggers a joblib.load() call.
+from app.core import compat as _compat
+_compat.apply()
+# ─────────────────────────────────────────────────────────────────────────────
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,8 +30,8 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application startup/shutdown hooks.
 
-    Later phases will load trained model artifacts and open DB pools here,
-    so that models are loaded once per process rather than per request.
+    Models are loaded once at startup (in prediction_service.py module scope)
+    rather than per-request so that weights stay resident in memory.
     """
     configure_logging()
     logger.info("VARUNA AI backend starting", extra={"env": settings.ENVIRONMENT})

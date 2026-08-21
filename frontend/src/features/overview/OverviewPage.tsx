@@ -39,23 +39,44 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-stone-300 bg-paper px-4 py-2 text-xs">
-        <span>
-          Active alerts <span className="font-mono">{alerts.length}</span>
-        </span>
-        <span className="text-stone-500">
-          Extreme {counts.extreme} · Heavy {counts.heavy} · Moderate {counts.moderate} · Low {counts.low}
-        </span>
-        <span className="text-stone-500">
-          API {healthQuery.data?.status ?? (healthQuery.isError ? "unreachable" : "…")}
-          {healthQuery.data ? ` · v${healthQuery.data.version}` : ""}
-        </span>
-        <span className="text-stone-500">
-          Model {modelQuery.data?.model_loaded ? "loaded" : "not deployed"}
-        </span>
-        <span className="ml-auto font-mono text-stone-500">
-          {healthQuery.dataUpdatedAt ? `Health ${formatDateTime(new Date(healthQuery.dataUpdatedAt).toISOString())}` : "—"}
-        </span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border border-stone-300 bg-paper px-4 py-2.5 text-[10.5px] uppercase tracking-wider text-stone-600">
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold text-stone-500">Active alerts</span>
+          <span className="font-mono font-semibold text-stone-950">{alerts.length}</span>
+        </div>
+        <span className="text-stone-300 hidden sm:inline">|</span>
+        <div className="flex items-center gap-2.5 text-stone-500">
+          <span>Extreme <span className="font-mono font-semibold text-stone-950">{counts.extreme}</span></span>
+          <span>·</span>
+          <span>Heavy <span className="font-mono font-semibold text-stone-950">{counts.heavy}</span></span>
+          <span>·</span>
+          <span>Moderate <span className="font-mono font-semibold text-stone-950">{counts.moderate}</span></span>
+          <span>·</span>
+          <span>Low <span className="font-mono font-semibold text-stone-950">{counts.low}</span></span>
+        </div>
+        <span className="text-stone-300 hidden md:inline">|</span>
+        <div className="hidden md:flex items-center gap-1.5">
+          <span className="font-bold text-stone-500">API</span>
+          <span className="font-mono font-semibold text-stone-950">
+            {healthQuery.data?.status ?? (healthQuery.isError ? "unreachable" : "…")}
+            {healthQuery.data ? ` (v${healthQuery.data.version})` : ""}
+          </span>
+        </div>
+        <span className="text-stone-300 hidden md:inline">|</span>
+        <div className="hidden md:flex items-center gap-1.5">
+          <span className="font-bold text-stone-500">Model</span>
+          <span className="font-mono font-semibold text-stone-950">
+            {modelQuery.data?.model_loaded ? "LOADED" : "UNDEPLOYED"}
+          </span>
+        </div>
+        {healthQuery.dataUpdatedAt && (
+          <>
+            <span className="text-stone-300 ml-auto hidden lg:inline">|</span>
+            <div className="hidden lg:flex items-center gap-1.5 font-mono text-[9.5px] text-stone-500 lowercase">
+              <span>updated: {formatDateTime(new Date(healthQuery.dataUpdatedAt).toISOString())}</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.7fr)]">

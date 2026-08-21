@@ -25,17 +25,17 @@ export function SystemStatusPage() {
         )}
         {healthQuery.data && (
           <dl className="grid grid-cols-[8rem_1fr] gap-y-2 font-mono text-xs">
-            <dt className="text-stone-500">status</dt>
-            <dd>{healthQuery.data.status}</dd>
-            <dt className="text-stone-500">service</dt>
+            <dt className="text-stone-500 font-sans tracking-wider uppercase text-[10px] font-bold">status</dt>
+            <dd className="font-semibold text-stone-900">{healthQuery.data.status}</dd>
+            <dt className="text-stone-500 font-sans tracking-wider uppercase text-[10px] font-bold">service</dt>
             <dd>{healthQuery.data.service}</dd>
-            <dt className="text-stone-500">version</dt>
+            <dt className="text-stone-500 font-sans tracking-wider uppercase text-[10px] font-bold">version</dt>
             <dd>{healthQuery.data.version}</dd>
-            <dt className="text-stone-500">environment</dt>
+            <dt className="text-stone-500 font-sans tracking-wider uppercase text-[10px] font-bold">environment</dt>
             <dd>{healthQuery.data.environment}</dd>
           </dl>
         )}
-        <p className="mt-4 text-xs leading-5 text-stone-500">
+        <p className="mt-4 text-xs leading-relaxed text-stone-500">
           Last data ingestion time is not returned by /health or /predictions/model-info.
         </p>
       </Panel>
@@ -49,28 +49,26 @@ export function SystemStatusPage() {
           />
         )}
         {modelQuery.data && (
-          <div className="space-y-3 text-sm">
-            <p>
-              model_loaded:{" "}
-              <span className="font-mono">{String(modelQuery.data.model_loaded)}</span>
-            </p>
-            <p className="font-mono text-xs">artifact_dir: {modelQuery.data.artifact_dir}</p>
-            <ul className="space-y-1 text-xs leading-5 text-stone-700">
-              <li>
-                <span className="font-medium">tabular — </span>
-                {modelQuery.data.expected_models.tabular}
-              </li>
-              <li>
-                <span className="font-medium">vision — </span>
-                {modelQuery.data.expected_models.vision}
-              </li>
-              <li>
-                <span className="font-medium">hybrid — </span>
-                {modelQuery.data.expected_models.hybrid}
-              </li>
-            </ul>
+          <div className="space-y-4">
+            <dl className="grid grid-cols-[8rem_1fr] gap-y-2 font-mono text-xs">
+              <dt className="text-stone-500 font-sans tracking-wider uppercase text-[10px] font-bold">model_loaded</dt>
+              <dd className="font-semibold text-stone-900">{String(modelQuery.data.model_loaded).toUpperCase()}</dd>
+              <dt className="text-stone-500 font-sans tracking-wider uppercase text-[10px] font-bold">artifact_dir</dt>
+              <dd className="text-stone-700">{modelQuery.data.artifact_dir}</dd>
+            </dl>
+            <div className="border-t border-stone-200 pt-3">
+              <span className="text-[10px] font-bold tracking-wider uppercase text-stone-500">Expected architectures</span>
+              <dl className="grid grid-cols-[8rem_1fr] gap-y-1.5 font-mono text-xs mt-2">
+                <dt className="text-stone-500">tabular</dt>
+                <dd className="text-stone-700">{modelQuery.data.expected_models.tabular}</dd>
+                <dt className="text-stone-500">vision</dt>
+                <dd className="text-stone-700">{modelQuery.data.expected_models.vision}</dd>
+                <dt className="text-stone-500">hybrid</dt>
+                <dd className="text-stone-700">{modelQuery.data.expected_models.hybrid}</dd>
+              </dl>
+            </div>
             {!modelQuery.data.model_loaded && (
-              <p className="border border-amber-800/40 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-950">
+              <p className="border border-amber-250 bg-amber-50/50 px-3 py-2 text-xs leading-5 text-amber-900">
                 POST /api/v1/predictions returns HTTP 501 until a trained artifact is loaded.{" "}
                 {lastDetail ? lastDetail : null}
               </p>
@@ -84,7 +82,7 @@ export function SystemStatusPage() {
         description="Controls how the Analysis workspace treats HTTP 501 (model not deployed)."
         title="Simulator"
       >
-        <fieldset className="space-y-2 text-sm">
+        <fieldset className="space-y-3 text-xs">
           <legend className="sr-only">Simulator mode</legend>
           {(
             [
@@ -93,16 +91,16 @@ export function SystemStatusPage() {
               ["off", "Off — show the 501 error and do not simulate"],
             ] as Array<[SimulatorMode, string]>
           ).map(([value, label]) => (
-            <label className="flex items-start gap-2" key={value}>
+            <label className="flex items-center gap-2.5 cursor-pointer text-stone-700 hover:text-stone-900 transition-colors" key={value}>
               <input
                 checked={simulatorMode === value}
-                className="mt-0.5"
                 name="simulatorMode"
                 onChange={() => setSimulatorMode(value)}
                 type="radio"
                 value={value}
+                className="accent-stone-900 h-3.5 w-3.5 border-stone-300 text-stone-900 focus:ring-0 focus:ring-offset-0"
               />
-              <span>{label}</span>
+              <span className="font-medium">{label}</span>
             </label>
           ))}
         </fieldset>
