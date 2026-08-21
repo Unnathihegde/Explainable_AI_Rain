@@ -46,6 +46,7 @@ class PredictionRequest(BaseModel):
     horizon_hours: int = Field(12, ge=1, le=72, description="Forecast lead time in hours")
     weather: WeatherFeatures | None = None
     include_explanation: bool = Field(True, description="Attach SHAP/Grad-CAM explanation payload")
+    satellite_image_b64: str | None = Field(None, description="Optional base64-encoded satellite image (PNG/JPEG)")
 
 
 class FeatureAttribution(BaseModel):

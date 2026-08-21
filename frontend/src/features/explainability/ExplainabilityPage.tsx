@@ -103,7 +103,7 @@ export function ExplainabilityPage() {
             </label>
           ) : null
         }
-        description="ImageExplanation.heatmap_url from the prediction payload. POST /api/v1/predictions does not accept an image upload."
+        description="ImageExplanation from the prediction payload. For real Grad-CAM on a satellite scene, use the upload panel on the Analysis page (POST /api/v1/predictions/explain-image)."
         title="Grad-CAM"
       >
         {!image ? (

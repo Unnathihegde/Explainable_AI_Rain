@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useRef, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { createPrediction } from "../../api/predictionsApi";
+import { createPrediction, explainImage } from "../../api/predictionsApi";
 import { ApiError } from "../../api/errors";
 import { IndiaMap } from "../../components/map/IndiaMap";
 import { Button } from "../../components/ui/Button";
@@ -16,7 +16,8 @@ import { simulatePrediction } from "../../lib/simulator";
 import { validatePredictionRequest } from "../../lib/validation";
 import { useUiStore } from "../../store/uiStore";
 import type { FieldError } from "../../lib/validation";
-import type { GeoPoint, WeatherFeatures } from "../../types/api";
+import type { GeoPoint, GradCamResponse, WeatherFeatures } from "../../types/api";
+
 
 const WEATHER_FIELDS: Array<{
   key: keyof WeatherFeatures;
@@ -44,6 +45,13 @@ export function AnalysisPage() {
 
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // --- Grad-CAM upload state -------------------------------------------
+  const [gradCamFile, setGradCamFile] = useState<File | null>(null);
+  const [gradCamResult, setGradCamResult] = useState<GradCamResponse | null>(null);
+  const [gradCamError, setGradCamError] = useState<string | null>(null);
+  const [showGradCamOverlay, setShowGradCamOverlay] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const errorMap = useMemo(() => Object.fromEntries(errors.map((e) => [e.field, e.message])), [errors]);
 
@@ -85,6 +93,17 @@ export function AnalysisPage() {
     },
     onError: (error) => {
       setSubmitError(error instanceof Error ? error.message : "Prediction failed.");
+    },
+  });
+
+  const gradCamMutation = useMutation({
+    mutationFn: async (file: File) => explainImage(file),
+    onSuccess: (result) => {
+      setGradCamResult(result);
+      setGradCamError(null);
+    },
+    onError: (error) => {
+      setGradCamError(error instanceof Error ? error.message : "Grad-CAM failed.");
     },
   });
 
@@ -257,6 +276,157 @@ export function AnalysisPage() {
               </Button>
             </div>
           )}
+        </Panel>
+
+        {/* Grad-CAM satellite image upload panel */}
+        <Panel
+          description="Upload an INSAT satellite scene (PNG, JPEG, or TIFF) to run real Grad-CAM attribution via satellite_model_v1.pt. Results appear below — nothing is fabricated."
+          title="Satellite image — Grad-CAM"
+        >
+          <div className="space-y-3">
+            {/* File picker */}
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                accept="image/png,image/jpeg,image/tiff,image/*"
+                aria-label="Upload INSAT satellite scene"
+                className="hidden"
+                id="gradcam-file-input"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setGradCamFile(file);
+                  setGradCamResult(null);
+                  setGradCamError(null);
+                }}
+                ref={fileInputRef}
+                type="file"
+              />
+              <button
+                className="border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:border-stone-500 hover:text-stone-900 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                {gradCamFile ? gradCamFile.name : "Choose satellite scene…"}
+              </button>
+              {gradCamFile && (
+                <Button
+                  disabled={gradCamMutation.isPending}
+                  onClick={() => gradCamMutation.mutate(gradCamFile)}
+                  type="button"
+                >
+                  {gradCamMutation.isPending ? "Running Grad-CAM…" : "Run Grad-CAM"}
+                </Button>
+              )}
+              {gradCamFile && (
+                <button
+                  className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                  onClick={() => {
+                    setGradCamFile(null);
+                    setGradCamResult(null);
+                    setGradCamError(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  type="button"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {gradCamError && <ErrorState body={gradCamError} title="Grad-CAM failed" />}
+
+            {/* Results */}
+            {gradCamResult && (
+              <div className="space-y-3 border-t border-stone-200 pt-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">
+                    Real Grad-CAM · {gradCamResult.model_name} v{gradCamResult.model_version}
+                  </p>
+                  <label className="flex items-center gap-2 text-xs text-stone-600">
+                    <input
+                      checked={showGradCamOverlay}
+                      onChange={(e) => setShowGradCamOverlay(e.target.checked)}
+                      type="checkbox"
+                    />
+                    Overlay
+                  </label>
+                </div>
+                <div className="relative max-w-md border border-stone-300 bg-stone-900">
+                  <img
+                    alt={showGradCamOverlay ? "Grad-CAM heatmap overlay" : "Grad-CAM heatmap"}
+                    className="block w-full"
+                    src={showGradCamOverlay ? gradCamResult.overlay_data_url : gradCamResult.heatmap_data_url}
+                  />
+                </div>
+                {/* Colour scale legend */}
+                <div>
+                  <p className="mb-1 text-[10px] uppercase tracking-wide text-stone-500">Attention scale</p>
+                  <div className="flex h-3 overflow-hidden border border-stone-300">
+                    <div className="flex-1 bg-[#3d5a6c]" />
+                    <div className="flex-1 bg-[#c06a2c]" />
+                    <div className="flex-1 bg-[#a33b32]" />
+                  </div>
+                  <div className="mt-1 flex justify-between font-mono text-[10px] text-stone-500">
+                    <span>Lower attention</span>
+                    <span>Higher attention</span>
+                  </div>
+                </div>
+                {/* Metadata */}
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-xs">
+                  <dt className="text-stone-500">Target layer</dt>
+                  <dd>{gradCamResult.target_layer}</dd>
+                  <dt className="text-stone-500">Predicted class</dt>
+                  <dd>{gradCamResult.predicted_category}</dd>
+                  <dt className="text-stone-500">Satellite risk</dt>
+                  <dd>{(gradCamResult.satellite_risk_score * 100).toFixed(1)}%</dd>
+                  <dt className="text-stone-500">Coverage</dt>
+                  <dd>{gradCamResult.coverage_label} ({(gradCamResult.high_influence_coverage * 100).toFixed(1)}%)</dd>
+                </dl>
+                {/* Class probabilities */}
+                {Object.keys(gradCamResult.class_probabilities).length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">Class probabilities</p>
+                    <div className="space-y-1.5">
+                      {Object.entries(gradCamResult.class_probabilities).map(([label, prob]) => (
+                        <div key={label} className="flex items-center gap-2">
+                          <span className="w-24 flex-shrink-0 font-mono text-[10.5px] text-stone-600">{label}</span>
+                          <div className="h-2 flex-1 overflow-hidden border border-stone-200">
+                            <div
+                              className="h-full bg-stone-700"
+                              style={{ width: `${(prob * 100).toFixed(1)}%` }}
+                            />
+                          </div>
+                          <span className="w-10 text-right font-mono text-[10.5px] text-stone-700">{(prob * 100).toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Regions */}
+                {gradCamResult.regions.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">High-attention regions</p>
+                    <div className="space-y-1">
+                      {gradCamResult.regions.map((region) => (
+                        <div className="flex items-baseline gap-3 text-xs" key={region.name}>
+                          <span className="font-mono text-stone-800">{region.name}</span>
+                          <span className="text-stone-500">{region.position}</span>
+                          <span className="ml-auto font-mono text-stone-600">
+                            {(region.intensity * 100).toFixed(0)}% intensity
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Notes */}
+                {gradCamResult.notes.length > 0 && (
+                  <ul className="list-disc pl-4 text-[11px] text-stone-500 space-y-0.5">
+                    {gradCamResult.notes.map((note, i) => <li key={i}>{note}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         </Panel>
       </div>
     </div>

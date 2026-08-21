@@ -19,7 +19,9 @@
  * // TODO: backend endpoint missing — GET /api/v1/predictions/{id}
  * // TODO: backend endpoint missing — prediction history / sessions
  * // TODO: backend endpoint missing — similar historical cases
- * // TODO: backend endpoint missing — satellite image upload (PredictionRequest has no image field)
+ *
+ * Implemented satellite Grad-CAM route:
+ * POST /api/v1/predictions/explain-image → 200 GradCamResponse | 422
  */
 
 export type RiskLevel = "low" | "moderate" | "heavy" | "extreme";
@@ -168,7 +170,50 @@ export interface HTTPValidationError {
   detail: ValidationErrorItem[];
 }
 
+
 /** FastAPI HTTPException body (501 and other raised HTTP errors). */
 export interface HTTPExceptionBody {
   detail: string;
+}
+
+// ---------------------------------------------------------------------------
+// Grad-CAM image explanation types (POST /api/v1/predictions/explain-image)
+// ---------------------------------------------------------------------------
+
+/** One named high-attention region extracted from the Grad-CAM heatmap. */
+export interface GradCamRegion {
+  name: string;
+  /** Normalised bounding box [x0, y0, x1, y1] in scene coordinates */
+  bbox: number[];
+  /** Share of the whole scene this region covers */
+  area_share: number;
+  /** Mean normalised attribution inside the region */
+  intensity: number;
+  /** Plain-language position within the scene */
+  position: string;
+}
+
+/**
+ * Real Grad-CAM explanation from the trained satellite CNN (satellite_model_v1.pt).
+ * Returned by POST /api/v1/predictions/explain-image.
+ * Both image URLs are base64 PNG data URLs — no static file server required.
+ */
+export interface GradCamResponse {
+  /** Always "real" — distinguishes from simulator Grad-CAM */
+  source: "real";
+  model_name: string;
+  model_version: string;
+  /** Convolutional layer used for attribution (e.g. 'features.3') */
+  target_layer: string;
+  predicted_category: number;
+  class_probabilities: Record<string, number>;
+  satellite_risk_score: number;
+  high_influence_coverage: number;
+  coverage_label: string;
+  regions: GradCamRegion[];
+  /** Normalised heatmap as a PNG data URL (data:image/png;base64,…) */
+  heatmap_data_url: string;
+  /** Side-by-side overlay (original scene + heatmap) as a PNG data URL */
+  overlay_data_url: string;
+  notes: string[];
 }

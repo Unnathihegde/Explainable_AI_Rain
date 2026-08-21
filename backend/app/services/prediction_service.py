@@ -32,6 +32,7 @@ from app.schemas.prediction import (
     FeatureAttribution,
     HistoricalExplanation,
     HistoricalMatch,
+    ImageExplanation,
     PredictionRequest,
     PredictionResponse,
     RiskLevel,
@@ -223,38 +224,108 @@ class PredictionService:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
-            result = self._predictor.predict(payload)
+        # Decode base64 image if provided
+        import base64
+        import tempfile
+        from pathlib import Path
 
-        # --- SHAP attributions -------------------------------------------
-        explanation: Explanation | None = None
-        if request.include_explanation:
-            explanation = self._build_explanation(result, payload)
+        tmp_path = None
+        image_bytes = None
+        if getattr(request, "satellite_image_b64", None):
+            try:
+                b64_data = request.satellite_image_b64
+                if "," in b64_data:
+                    b64_data = b64_data.split(",")[-1]
+                image_bytes = base64.b64decode(b64_data)
+            except Exception as exc:
+                logger.warning("Failed to decode satellite_image_b64: %s", exc)
 
-        # --- Map to API schema -------------------------------------------
-        raw_risk = result.get("risk_level", "LOW")
-        risk_level = _RISK_MAP.get(str(raw_risk).upper(), RiskLevel.LOW)
+        if image_bytes:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                tmp.write(image_bytes)
+                tmp_path = Path(tmp.name)
+            payload["satellite_image_path"] = str(tmp_path)
 
-        model_version = result.get("model", "hybrid-v1")
-        probability = float(result.get("risk_probability", 0.0))
-        confidence = float(result.get("confidence_pct", 0.0)) / 100.0
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+                result = self._predictor.predict(payload)
 
-        return PredictionResponse(
-            location=request.location,
-            region_name=request.region_name,
-            generated_at=datetime.fromisoformat(result["generated_at"]),
-            horizon_hours=request.horizon_hours,
-            probability=probability,
-            risk_level=risk_level,
-            confidence=confidence,
-            model_version=model_version,
-            explanation=explanation,
-        )
+            # Generate real Grad-CAM image_explanation if satellite image is uploaded
+            image_explanation = None
+            if tmp_path:
+                try:
+                    from explainability.gradcam_explainer.gradcam import SatelliteGradCam
+                    from explainability.gradcam_explainer.config import GradCamConfig
+                    from explainability.gradcam_explainer.visualization import blend_overlay
+                    from ai_models.satellite_model.preprocessing import load_rgb
+                    import cv2
+                    import numpy as np
+
+                    cam = SatelliteGradCam()
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", category=UserWarning)
+                        gradcam_result = cam.explain(tmp_path)
+
+                    original_rgb = load_rgb(tmp_path)
+                    overlay_rgb = blend_overlay(original_rgb, gradcam_result.heatmap, GradCamConfig())
+                    overlay_bgr = cv2.cvtColor(overlay_rgb.astype(np.uint8), cv2.COLOR_RGB2BGR)
+                    ok, buf = cv2.imencode(".png", overlay_bgr)
+                    if ok:
+                        overlay_b64 = base64.b64encode(buf.tobytes()).decode("ascii")
+                        overlay_data_url = f"data:image/png;base64,{overlay_b64}"
+
+                        description = (
+                            f"Real Grad-CAM overlay using model {gradcam_result.model_name} "
+                            f"(layer {gradcam_result.target_layer}). Highlights coverage: "
+                            f"{gradcam_result.coverage_label} ({gradcam_result.coverage * 100:.1f}%). "
+                        )
+                        if gradcam_result.regions:
+                            regions_desc = ", ".join([f"{r.name} in {r.position}" for r in gradcam_result.regions])
+                            description += f"High-influence regions: {regions_desc}."
+
+                        image_explanation = ImageExplanation(
+                            satellite_image_id="uploaded_scene.png",
+                            heatmap_url=overlay_data_url,
+                            description=description,
+                        )
+                except Exception as exc:
+                    logger.warning("Failed to generate Grad-CAM in predict: %s", exc)
+
+            # --- SHAP attributions -------------------------------------------
+            explanation: Explanation | None = None
+            if request.include_explanation:
+                explanation = self._build_explanation(result, payload, image_explanation)
+
+            # --- Map to API schema -------------------------------------------
+            raw_risk = result.get("risk_level", "LOW")
+            risk_level = _RISK_MAP.get(str(raw_risk).upper(), RiskLevel.LOW)
+
+            model_version = result.get("model", "hybrid-v1")
+            probability = float(result.get("risk_probability", 0.0))
+            confidence = float(result.get("confidence_pct", 0.0)) / 100.0
+
+            return PredictionResponse(
+                location=request.location,
+                region_name=request.region_name,
+                generated_at=datetime.fromisoformat(result["generated_at"]),
+                horizon_hours=request.horizon_hours,
+                probability=probability,
+                risk_level=risk_level,
+                confidence=confidence,
+                model_version=model_version,
+                explanation=explanation,
+            )
+        finally:
+            if tmp_path:
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
 
     # ------------------------------------------------------------------
     def _build_explanation(
-        self, result: dict[str, Any], payload: dict[str, Any]
+        self, result: dict[str, Any], payload: dict[str, Any], image_explanation: ImageExplanation | None = None
     ) -> Explanation:
         """Convert the raw HybridPredictor output + SHAP into the API schema."""
 
@@ -382,7 +453,7 @@ class PredictionService:
 
         return Explanation(
             feature_attributions=feature_attributions,
-            image_explanation=None,  # Grad-CAM requires a live satellite image
+            image_explanation=image_explanation,
             narrative=narrative,
             historical_explanation=historical,
             confidence_explanation=confidence_explanation,
