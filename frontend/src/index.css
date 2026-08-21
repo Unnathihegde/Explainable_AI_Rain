@@ -2,8 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Leaflet needs an explicit height on its container. */
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  background: #ebe6dc;
+  color: #1c1917;
+}
+
 .map-container {
   height: 100%;
-  min-height: 24rem;
+  min-height: 22rem;
+}
+
+.leaflet-container {
+  font-family: inherit;
+  background: #e4dfd4;
 }
